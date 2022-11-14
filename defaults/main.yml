@@ -1,0 +1,15 @@
+---
+
+# Don't create a log file
+write_log_file: false
+
+# Default iTerm2 configuration settings for PListBuddy operation
+
+plist_file: Library/Preferences/com.googlecode.iterm2.plist
+
+config_items:
+  - { name: "Font", value: "set :'New Bookmarks':0:'Normal Font' 'MesloLGSNerdFontCompleteM-Regular 12'"}
+  - { name: "Rows", value: "set :'New Bookmarks':0:'Rows' 33"}
+  - { name: "Columns", value: "set :'New Bookmarks':0:'Columns' 272"}
+  - { name: "Theme", value: "add :'TabStyleWithAutomaticOption' integer 1"} # Dark theme
+...

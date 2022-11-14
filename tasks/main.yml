@@ -1,0 +1,88 @@
+---
+
+- name: Fail if not macOS
+  fail:
+    msg: Must be running macOS
+  when:
+    - ansible_os_family != 'Darwin'
+
+- name: Register Homebrew install state
+  stat:
+    path: /usr/local/bin/brew
+  register: homebrew_brew
+
+- name: Fail if Homebrew is not installed
+  fail:
+    msg: No Homebrew at `/usr/local/bin/brew`
+  when:
+    - not homebrew_brew.stat.exists
+
+- name: Register Homebrew health
+  shell: brew doctor
+  register: brew_doctor
+  changed_when: false
+  failed_when: false
+
+- name: Fail if Homebrew is not healthy
+  fail:
+    msg: Homebrew is not healthy, run `brew doctor` and resolve reported issues
+  when: brew_doctor.stdout != "Your system is ready to brew."
+
+- name: Update Homebrew
+  shell: brew update
+
+- name: Tap Homebrew Cask
+  homebrew_tap:
+    name: homebrew/cask
+    state: present
+
+- name: Install iTerm2
+  become: false
+  homebrew_cask: name=iterm2 state=latest
+
+# TODO: The current plist module cannot handle the complex plist structure used by iTerm2
+# TODO: We plan to replace the plist module with PListNode
+# TODO: In the meantime, we will configure the settings using PListBuddy
+# TODO: However, we are not going to track changes or failures with this method
+#- name: Configure iTerm2
+#  plist:
+#    dest: com.googlecode.iterm2
+#    values:
+#      "New Bookmarks":
+#        "0":
+#          "Normal Font": 'MesloLGSNerdFontCompleteM-Regular 12'
+
+- name: Configure iTerm2
+  # Example: /usr/libexec/PListBuddy -c "set :'New Bookmarks':0:'Normal Font' 'MesloLGSNerdFontCompleteM-Regular 12'" /Users/Jacqui/Library/Preferences/com.googlecode.iterm2.plist
+  # Note: Repeated runs with any item.value of "add" will fail - you can only "add" a value once and after that you have to "set" it.
+  # See defaults/main for the list of configuration items.
+  shell: /usr/libexec/PListBuddy -c "{{ item.value }}" $HOME/{{ plist_file }}
+  with_items: "{{ config_items }}"
+  changed_when: false
+  failed_when: false
+
+- name: Log results
+  template:
+    src: iterm2.log.j2
+    dest: $HOME/.shurroo/log/iterm2-{{ log_time }}.log
+  when: write_log_file
+  changed_when: false
+
+- name: Register log status
+  # Set to "log_no.txt" message in vars
+  # Change to "log_yes.txt" message when write_log_file
+  set_fact: log_status="log_yes.txt"
+  when: write_log_file
+  changed_when: false
+
+- name: Register next steps
+  # Set to "ready_no.txt" message in vars
+  # Change to "ready_yes.txt" message when all conditions are met
+  set_fact: next_steps="ready_yes.txt"
+  when: true
+
+- name: Next steps
+  debug:
+    msg: "{{ lookup('file', log_status, rstrip=false) }}{{ lookup('file', next_steps, rstrip=false) }}"
+
+...

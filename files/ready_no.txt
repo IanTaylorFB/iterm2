@@ -1,0 +1,1 @@
+iTerm2 is not installed correctly. Please try again.
